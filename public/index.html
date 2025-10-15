@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cargar y Ver Videos (Amplify)</title>
     
-    <script src="https://unpkg.com/aws-amplify@6.0.0/dist/aws-amplify.min.js"></script>
+    <script src="https://unpkg.com/aws-amplify/dist/aws-amplify.js"></script>
 
     <style>
         /* Estilos CSS (Sin cambios, solo añadido un contenedor general para videos) */
@@ -156,8 +156,8 @@
     <script>
         // --- CORRECCIÓN CRÍTICA ---
         // Acceder a las variables desde el objeto global "window"
-        const Amplify = window.aws_amplify.Amplify;
-        const Storage = window.aws_amplify.Storage;
+        const { Amplify, Storage } = window.aws_amplify; 
+
         // --- FIN CORRECCIÓN ---
 
         // ... el resto de tu código
