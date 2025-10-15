@@ -215,13 +215,13 @@
     Amplify.configure({
         Auth: {
             // Necesario para las operaciones de S3
-            identityPoolId: 'TU_IDENTITY_POOL_ID', // << REEMPLAZA
-            region: 'TU_REGION' // << REEMPLAZA
+            identityPoolId: 'us-east-1:1fc9775e-fc1b-43d6-adfc-5cebcae585b1', // << REEMPLAZA
+            region: 'us-east-1' // << REEMPLAZA
         },
         Storage: {
             AWSS3: {
-                bucket: 'TU_BUCKET_NAME', // << REEMPLAZA (Ej: videoapp-2024-hosting)
-                region: 'TU_REGION' // << REEMPLAZA (Ej: us-east-1)
+                bucket: 'clasesgrabadasunitec2025', // << REEMPLAZA (Ej: videoapp-2024-hosting)
+                region: 'us-east-1' // << REEMPLAZA (Ej: us-east-1)
             }
         }
     });
