@@ -173,8 +173,18 @@
                     <div class="upload-icon">📁</div>
                     <p>Arrastra y suelta tu video aquí o haz clic para seleccionar</p>
                     <input type="file" id="fileInput" accept="video/*" style="display: none;">
-                    <button class="upload-button" id="uploadButton">Seleccionar Video</button>
+                    
+                    <button class="upload-button" id="selectButton">Seleccionar Video</button>
                 </div>
+                
+                <div id="selectedFileStatus" class="status" style="margin-bottom: 10px; color: #fdbb2d;">
+                    Ningún archivo seleccionado.
+                </div>
+
+                <button class="upload-button" id="uploadFileButton" style="background: #e74c3c; display: none;">
+                    Subir a S3
+                </button>
+
                 <div class="progress-bar">
                     <div class="progress" id="uploadProgress"></div>
                 </div>
@@ -204,82 +214,104 @@
     // Elementos del DOM
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
-    const uploadButton = document.getElementById('uploadButton');
+    const selectButton = document.getElementById('selectButton'); // Botón para abrir explorador
+    const uploadFileButton = document.getElementById('uploadFileButton'); // NUEVO: Botón para subir
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadStatus = document.getElementById('uploadStatus');
     const videosGrid = document.getElementById('videosGrid');
+    const selectedFileStatus = document.getElementById('selectedFileStatus');
+
+    let fileToUpload = null; // Variable global para guardar el archivo seleccionado
     
     // =========================================================================
-    // 1. CONFIGURACIÓN DE AMPLIFY (CRÍTICO: REEMPLAZA LOS VALORES)
+    // 1. CONFIGURACIÓN DE AMPLIFY
     // =========================================================================
     Amplify.configure({
         Auth: {
-            // Necesario para las operaciones de S3
-            identityPoolId: 'us-east-1:1fc9775e-fc1b-43d6-adfc-5cebcae585b1', // << REEMPLAZA
-            region: 'us-east-1' // << REEMPLAZA
+            identityPoolId: 'us-east-1:1fc9775e-fc1b-43d6-adfc-5cebcae585b1', 
+            region: 'us-east-1' 
         },
         Storage: {
             AWSS3: {
-                bucket: 'clasesgrabadasunitec2025', // << REEMPLAZA (Ej: videoapp-2024-hosting)
-                region: 'us-east-1' // << REEMPLAZA (Ej: us-east-1)
+                bucket: 'clasesgrabadasunitec2025', 
+                region: 'us-east-1' 
             }
         }
     });
 
     // =========================================================================
-    // 2. LÓGICA DE EVENTOS (NO REQUIERE CAMBIOS)
+    // 2. LÓGICA DE EVENTOS (Corregida para el flujo SELECCIONAR -> SUBIR)
     // =========================================================================
-    uploadButton.addEventListener('click', () => {
+
+    // Evento para abrir el explorador de archivos
+    selectButton.addEventListener('click', () => {
         fileInput.click();
     });
     
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-        uploadArea.style.background = 'rgba(255, 255, 255, 0.05)';
+    // Evento que se dispara al seleccionar el archivo
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            prepareFileForUpload(e.target.files[0]);
+        }
     });
-    
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-        uploadArea.style.background = 'transparent';
-    });
-    
+
+    // Evento para el Drag and Drop
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
         uploadArea.style.background = 'transparent';
         
         if (e.dataTransfer.files.length) {
-            handleFileUpload(e.dataTransfer.files[0]);
+            prepareFileForUpload(e.dataTransfer.files[0]);
         }
     });
     
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleFileUpload(e.target.files[0]);
-        }
-    });
-    
-    // =========================================================================
-    // 3. FUNCIONES CORE DE AMPLIFY (CORREGIDAS Y LIMPIAS)
-    // =========================================================================
-
-    // Función para manejar la carga de archivos (SOLO LÓGICA AMPLIFY)
-    function handleFileUpload(file) {
-        if (!file.type.startsWith('video/')) {
-            uploadStatus.textContent = 'Por favor, selecciona un archivo de video válido.';
+    // NUEVO: Evento que se dispara al hacer clic en el botón 'Subir a S3'
+    uploadFileButton.addEventListener('click', () => {
+        if (fileToUpload) {
+            // Llama a la función de subida REAL de Amplify
+            uploadFileToS3(fileToUpload);
+        } else {
+            uploadStatus.textContent = 'Por favor, selecciona un archivo primero.';
             uploadStatus.style.color = '#ff6b6b';
+        }
+    });
+
+
+    // Función para PREPARAR el archivo (no sube nada aún)
+    function prepareFileForUpload(file) {
+        if (!file.type.startsWith('video/')) {
+            selectedFileStatus.textContent = 'Tipo de archivo no válido. Solo videos.';
+            uploadFileButton.style.display = 'none';
+            fileToUpload = null;
             return;
         }
-        
+
+        fileToUpload = file;
+        selectedFileStatus.textContent = `Archivo listo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        uploadFileButton.style.display = 'block'; // Mostrar el botón de Subir
+        uploadStatus.textContent = 'Presiona "Subir a S3" para iniciar.';
+        uploadStatus.style.color = 'white';
+        uploadProgress.style.width = `0%`;
+    }
+
+
+    // =========================================================================
+    // 3. FUNCIONES CORE DE AMPLIFY
+    // =========================================================================
+
+    // Función para manejar la carga de archivos a S3
+    function uploadFileToS3(file) {
         uploadStatus.textContent = 'Preparando carga...';
         uploadStatus.style.color = 'white';
-        uploadProgress.style.width = `0%`; // Resetear barra
+        uploadFileButton.style.display = 'none'; // Ocultar mientras se sube
+
+        const s3Key = `videos/${Date.now()}-${file.name}`;
 
         // Implementación REAL con Amplify Storage.put
-        Storage.put(`videos/${Date.now()}-${file.name}`, file, {
+        Storage.put(s3Key, file, {
             contentType: file.type,
-            level: 'public', // Asume que quieres que el video sea visible para todos
+            level: 'public', 
             progressCallback: (progress) => {
                 const percentage = (progress.loaded / progress.total) * 100;
                 uploadProgress.style.width = `${percentage}%`;
@@ -289,12 +321,15 @@
         .then(result => {
             uploadStatus.textContent = '¡Video cargado exitosamente! Recargando lista...';
             uploadStatus.style.color = '#4CAF50';
+            fileToUpload = null; // Limpiar después de subir
+            selectedFileStatus.textContent = 'Ningún archivo seleccionado.';
             loadVideos();
         })
         .catch(err => {
-            uploadStatus.textContent = 'Error al cargar el video: ' + err.message;
+            uploadStatus.textContent = 'Error al cargar. Verifica permisos IAM.';
             uploadStatus.style.color = '#ff6b6b';
-            console.error(err);
+            uploadFileButton.style.display = 'block'; // Mostrar de nuevo para reintentar
+            console.error("Error al subir a S3:", err);
         });
     }
 
@@ -302,26 +337,50 @@
     function loadVideos() {
         videosGrid.innerHTML = ''; // Limpiar la lista antes de cargar
         
-        Storage.list('videos/', { level: 'public' }) // Asegura el mismo nivel que el de carga
+        // El video de ejemplo estático solo se muestra si no hay videos cargados
+        let hasVideos = false; 
+
+        Storage.list('videos/', { level: 'public' }) 
             .then(result => {
                 // Iterar sobre los elementos encontrados en S3
                 result.results.forEach(item => {
-                    // Excluir el prefijo de la carpeta (si solo quieres listar archivos)
-                    if (item.key && item.key !== 'videos/') { 
+                    if (item.key && item.key.length > 6) { // Ignorar la carpeta raíz "videos/"
+                        hasVideos = true;
                         // Obtener la URL pública del video
                         Storage.get(item.key, { level: 'public' })
                             .then(url => {
-                                addVideoToGrid(item.key.replace('videos/', ''), url);
+                                // Limpiar el nombre para la UI
+                                const filename = item.key.replace('public/videos/', '').replace('videos/', ''); 
+                                addVideoToGrid(filename, url);
                             })
                             .catch(err => console.error('Error al obtener URL:', err));
                     }
                 });
+                
+                // Si no hay videos reales, muestra el ejemplo estático
+                if (!hasVideos) {
+                    addExampleVideo();
+                }
             })
-            .catch(err => console.error('Error al listar videos:', err));
+            .catch(err => {
+                console.error('Error al listar videos:', err);
+                addExampleVideo();
+            });
     }
 
-    // Función para añadir un video a la cuadrícula (NO REQUIERE CAMBIOS)
-    function addVideoToGrid(filename, url = '#') {
+    // Función para añadir el video de ejemplo estático
+    function addExampleVideo() {
+        const videoCard = document.createElement('div');
+        videoCard.className = 'video-card';
+        videoCard.innerHTML = `
+            <video controls><source src="#" type="video/mp4">Tu navegador no soporta el elemento video.</video>
+            <div class="video-info"><h3>Video de ejemplo</h3><p>Cargado el 01/01/2023</p></div>
+        `;
+        videosGrid.prepend(videoCard);
+    }
+    
+    // Función para añadir un video real a la cuadrícula
+    function addVideoToGrid(filename, url) {
         const videoCard = document.createElement('div');
         videoCard.className = 'video-card';
         
@@ -335,11 +394,10 @@
             </video>
             <div class="video-info">
                 <h3>${filename}</h3>
-                <p>Cargado el ${dateStr}</p>
+                <p>Cargado hoy: ${dateStr}</p>
             </div>
         `;
         
-        // El método prepend asegura que los videos más nuevos aparezcan primero
         videosGrid.prepend(videoCard); 
     }
     
