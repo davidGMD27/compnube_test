@@ -1,43 +1,350 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.amplifyapp.com/amplify.js"></script>
+    <title>Mi Aplicación de Videos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+        
+        .upload-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 15px;
+        }
+        
+        .upload-button:hover {
+            background: #45a049;
+        }
+        
+        .videos-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .video-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .video-info {
+            padding: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .videos-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mi Aplicación de Videos</h1>
+            <p class="subtitle">Carga y comparte tus videos de forma segura</p>
+        </header>
+        
+        <div class="main-content">
+            <section class="upload-section">
+                <h2>Cargar Nuevo Video</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p>Arrastra y suelta tu video aquí o haz clic para seleccionar</p>
+                    <input type="file" id="fileInput" accept="video/*" style="display: none;">
+                    <button class="upload-button" id="uploadButton">Seleccionar Video</button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" id="uploadProgress"></div>
+                </div>
+                <div class="status" id="uploadStatus"></div>
+            </section>
+            
+            <section class="videos-section">
+                <h2>Mis Videos</h2>
+                <div class="videos-grid" id="videosGrid">
+                    <!-- Los videos se cargarán aquí dinámicamente -->
+                    <div class="video-card">
+                        <video controls>
+                            <source src="#" type="video/mp4">
+                            Tu navegador no soporta el elemento video.
+                        </video>
+                        <div class="video-info">
+                            <h3>Video de ejemplo</h3>
+                            <p>Cargado el 01/01/2023</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+    <script>
+    // Elementos del DOM
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const videosGrid = document.getElementById('videosGrid');
+    
+    // =========================================================================
+    // 1. CONFIGURACIÓN DE AMPLIFY (CRÍTICO: REEMPLAZA LOS VALORES)
+    // =========================================================================
+    Amplify.configure({
+        Auth: {
+            // Necesario para las operaciones de S3
+            identityPoolId: 'TU_IDENTITY_POOL_ID', // << REEMPLAZA
+            region: 'TU_REGION' // << REEMPLAZA
+        },
+        Storage: {
+            AWSS3: {
+                bucket: 'TU_BUCKET_NAME', // << REEMPLAZA (Ej: videoapp-2024-hosting)
+                region: 'TU_REGION' // << REEMPLAZA (Ej: us-east-1)
+            }
+        }
+    });
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    // =========================================================================
+    // 2. LÓGICA DE EVENTOS (NO REQUIERE CAMBIOS)
+    // =========================================================================
+    uploadButton.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+        uploadArea.style.background = 'rgba(255, 255, 255, 0.05)';
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+        
+        if (e.dataTransfer.files.length) {
+            handleFileUpload(e.dataTransfer.files[0]);
+        }
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFileUpload(e.target.files[0]);
+        }
+    });
+    
+    // =========================================================================
+    // 3. FUNCIONES CORE DE AMPLIFY (CORREGIDAS Y LIMPIAS)
+    // =========================================================================
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+    // Función para manejar la carga de archivos (SOLO LÓGICA AMPLIFY)
+    function handleFileUpload(file) {
+        if (!file.type.startsWith('video/')) {
+            uploadStatus.textContent = 'Por favor, selecciona un archivo de video válido.';
+            uploadStatus.style.color = '#ff6b6b';
+            return;
+        }
+        
+        uploadStatus.textContent = 'Preparando carga...';
+        uploadStatus.style.color = 'white';
+        uploadProgress.style.width = `0%`; // Resetear barra
+
+        // Implementación REAL con Amplify Storage.put
+        Storage.put(`videos/${Date.now()}-${file.name}`, file, {
+            contentType: file.type,
+            level: 'public', // Asume que quieres que el video sea visible para todos
+            progressCallback: (progress) => {
+                const percentage = (progress.loaded / progress.total) * 100;
+                uploadProgress.style.width = `${percentage}%`;
+                uploadStatus.textContent = `Cargando: ${Math.round(percentage)}%`;
+            },
+        })
+        .then(result => {
+            uploadStatus.textContent = '¡Video cargado exitosamente! Recargando lista...';
+            uploadStatus.style.color = '#4CAF50';
+            loadVideos();
+        })
+        .catch(err => {
+            uploadStatus.textContent = 'Error al cargar el video: ' + err.message;
+            uploadStatus.style.color = '#ff6b6b';
+            console.error(err);
+        });
+    }
+
+    // Función para cargar y listar videos desde S3
+    function loadVideos() {
+        videosGrid.innerHTML = ''; // Limpiar la lista antes de cargar
+        
+        Storage.list('videos/', { level: 'public' }) // Asegura el mismo nivel que el de carga
+            .then(result => {
+                // Iterar sobre los elementos encontrados en S3
+                result.results.forEach(item => {
+                    // Excluir el prefijo de la carpeta (si solo quieres listar archivos)
+                    if (item.key && item.key !== 'videos/') { 
+                        // Obtener la URL pública del video
+                        Storage.get(item.key, { level: 'public' })
+                            .then(url => {
+                                addVideoToGrid(item.key.replace('videos/', ''), url);
+                            })
+                            .catch(err => console.error('Error al obtener URL:', err));
+                    }
+                });
+            })
+            .catch(err => console.error('Error al listar videos:', err));
+    }
+
+    // Función para añadir un video a la cuadrícula (NO REQUIERE CAMBIOS)
+    function addVideoToGrid(filename, url = '#') {
+        const videoCard = document.createElement('div');
+        videoCard.className = 'video-card';
+        
+        const today = new Date();
+        const dateStr = `${today.getDate()}/${today.getMonth()+1}/${today.getFullYear()}`;
+        
+        videoCard.innerHTML = `
+            <video controls>
+                <source src="${url}" type="video/mp4">
+                Tu navegador no soporta el elemento video.
+            </video>
+            <div class="video-info">
+                <h3>${filename}</h3>
+                <p>Cargado el ${dateStr}</p>
+            </div>
+        `;
+        
+        // El método prepend asegura que los videos más nuevos aparezcan primero
+        videosGrid.prepend(videoCard); 
+    }
+    
+    // Cargar videos al iniciar
+    loadVideos();
+</script>
+</body>
 </html>
