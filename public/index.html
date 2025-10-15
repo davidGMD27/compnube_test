@@ -154,7 +154,13 @@
     </div>
 
     <script>
-        const { Amplify, Storage } = aws_amplify;
+        // --- CORRECCIÓN CRÍTICA ---
+        // Acceder a las variables desde el objeto global "window"
+        const Amplify = window.aws_amplify.Amplify;
+        const Storage = window.aws_amplify.Storage;
+        // --- FIN CORRECCIÓN ---
+
+        // ... el resto de tu código
 
         // ✅ CONFIGURACIÓN CRÍTICA: REEMPLAZA ESTOS VALORES REALES
         Amplify.configure({
